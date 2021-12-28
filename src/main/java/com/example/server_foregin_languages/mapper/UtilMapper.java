@@ -3,6 +3,7 @@ package com.example.server_foregin_languages.mapper;
 import com.example.server_foregin_languages.domain.*;
 import com.example.server_foregin_languages.dto.*;
 import com.example.server_foregin_languages.repo.AppUserRepository;
+import com.example.server_foregin_languages.repo.SharedWordSetRepository;
 import com.example.server_foregin_languages.repo.WordSetRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class UtilMapper {
 
     private final AppUserRepository appUserRepository;
     private final WordSetRepository wordSetRepository;
+    private final SharedWordSetRepository sharedWordSetRepository;
 
     public AppUser mapFromDtoToUser(RegisterBody registerBody) {
         AppUser appUser = new AppUser();
@@ -76,5 +78,26 @@ public class UtilMapper {
                     list.add(temp);
                 });
         return list;
+    }
+
+    public WordSetResponse mapFromWordSetToDto(WordSet wordSet) {
+        return WordSetResponse.builder()
+                .id(wordSet.getId())
+                .toLanguage(wordSet.getToLanguage())
+                .title(wordSet.getTitle())
+                .description(wordSet.getDescription())
+                .wordList(wordSet.getWordList())
+                .creationTime(wordSet.getCreationTime())
+                .isShared(sharedWordSetRepository.existsByWordSet(wordSet))
+                .build();
+    }
+
+    public SharedWordSetResponse mapFromSharedWordSetToDto(SharedWordSet sharedWordSet){
+        return SharedWordSetResponse.builder()
+                .id(sharedWordSet.getId())
+                .wordSet(sharedWordSet.getWordSet())
+                .likesCount(sharedWordSet.getLikesCount())
+                .author(sharedWordSet.getWordSet().getUser().getNickName())
+                .build();
     }
 }

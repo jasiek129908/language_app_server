@@ -1,11 +1,7 @@
 package com.example.server_foregin_languages.service;
 
-import com.example.server_foregin_languages.domain.SharedWordSet;
-import com.example.server_foregin_languages.domain.Word;
-import com.example.server_foregin_languages.domain.WordSet;
-import com.example.server_foregin_languages.dto.WordSetBody;
-import com.example.server_foregin_languages.dto.WordSetUpdateBody;
-import com.example.server_foregin_languages.dto.WordUpdateBody;
+import com.example.server_foregin_languages.domain.*;
+import com.example.server_foregin_languages.dto.*;
 import com.example.server_foregin_languages.mapper.UtilMapper;
 import com.example.server_foregin_languages.repo.AppUserRepository;
 import com.example.server_foregin_languages.repo.SharedWordSetRepository;
@@ -13,13 +9,14 @@ import com.example.server_foregin_languages.repo.WordRepository;
 import com.example.server_foregin_languages.repo.WordSetRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -28,6 +25,7 @@ public class WordSetService {
     private final WordSetRepository wordSetRepository;
     private final UtilMapper utilMapper;
     private final AppUserRepository appUserRepository;
+    private final AuthService authService;
     private final WordRepository wordRepository;
     private final SharedWordSetRepository sharedWordSetRepository;
 
@@ -37,13 +35,22 @@ public class WordSetService {
         return wordSetRepository.save(wordSet);
     }
 
-    public List<WordSet> findAllUserWordSets(String email) {
+    public List<WordSetResponse> findAllUserWordSets(String email) {
         return wordSetRepository.getAllByUser(appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("email not found " + email)));
+                .orElseThrow(() -> new RuntimeException("email not found " + email)))
+                .stream()
+                .map(wordSet -> utilMapper.mapFromWordSetToDto(wordSet))
+                .collect(Collectors.toList());
     }
 
-    public String[] getAllAvailableLanguages() {
-        return Locale.getISOCountries();
+    public List<Country> getAllAvailableLanguages() {
+        Set<Country> collect = Arrays.stream(Locale.getISOLanguages())
+                .map(Locale::new)
+                .map(locale -> new Country(locale.toString(), locale.getDisplayName(Locale.getDefault())))
+                .collect(Collectors.toSet());
+        List<Country> response = new ArrayList<>(collect);
+        response.sort(Comparator.comparing(Country::getName));
+        return response;
     }
 
     public WordSet deleteWordSetById(Long id) {
@@ -56,9 +63,10 @@ public class WordSetService {
         return wordSet.get();
     }
 
-    public WordSet findWordSetById(Long id) {
-        return wordSetRepository.findById(id)
+    public WordSetResponse findWordSetById(Long id) {
+        WordSet wordSet = wordSetRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("No word set with id: " + id + " found"));
+        return utilMapper.mapFromWordSetToDto(wordSet);
     }
 
     public WordSet updateWordSet(WordSetUpdateBody updatedWordSet) {
@@ -75,27 +83,22 @@ public class WordSetService {
         wordRepository.deleteByWordSet(wordSet);
         List<Word> newWords = new ArrayList<>();
         for (WordUpdateBody word : newList) {
-            if (!wordRepository.findByWord(word.getWord()).isPresent()
-                    && !wordRepository.findByTranslation(word.getTranslation()).isPresent()) {
-                Word word1 = new Word();
-                word1.setWord(word.getWord());
-                word1.setTranslation(word.getTranslation());
-                word1.setDescription(word.getDescription());
-                word1.setWordSet(wordSet);
-                wordRepository.save(word1);
-                newWords.add(word1);
-                continue;
-            }
+            Word word1 = new Word();
+            word1.setWord(word.getWord());
+            word1.setTranslation(word.getTranslation());
+            word1.setDescription(word.getDescription());
+            word1.setWordSet(wordSet);
+            wordRepository.save(word1);
+            newWords.add(word1);
         }
     }
 
     public SharedWordSet sharedWordSet(Long wordSetId) {
         Optional<WordSet> wordSet = wordSetRepository.findById(wordSetId);
         if (wordSet.isPresent()) {
-            if (sharedWordSetRepository.getByWordSetId(wordSetId) == null) {
+            if (!sharedWordSetRepository.getByWordSet(wordSet.get()).isPresent()) {
                 SharedWordSet sharedWordSet = new SharedWordSet();
-                sharedWordSet.setDislikeCount(0);
-                sharedWordSet.setLikeCount(0);
+                sharedWordSet.setLikesCount(0);
                 sharedWordSet.setWordSet(wordSet.get());
                 sharedWordSetRepository.save(sharedWordSet);
                 return sharedWordSet;
@@ -106,12 +109,76 @@ public class WordSetService {
         return null;
     }
 
-    public List<WordSet> getPageSharedWordSet(int pageNumber, int pageSize) {
-        return wordSetRepository.findPageWordSet(PageRequest.of(pageNumber, pageSize));
+    public List<WordSetResponse> getPageWordSet(int pageNumber, int pageSize, SortingType sortingType, String languagesToFilter) {
+        AppUser loggedInUser = authService.getLoggedInUser();
+        Pageable paging = makePageRequest(pageNumber, pageSize, sortingType);
+        List<String> langFilter = splitFilterToList(languagesToFilter);
+
+        List<WordSetResponse> collect;
+        if (langFilter.size() > 0) {
+            collect = wordSetRepository.findPageWordSetWithFilter(loggedInUser, langFilter, paging).stream()
+                    .map(wordSet -> utilMapper.mapFromWordSetToDto(wordSet))
+                    .collect(Collectors.toList());
+        } else {
+            collect = wordSetRepository.findPageWordSetWithoutFilter(loggedInUser, paging).stream()
+                    .map(wordSet -> utilMapper.mapFromWordSetToDto(wordSet))
+                    .collect(Collectors.toList());
+        }
+        return collect;
     }
 
-    public int getQuantityOfAvailablePages(Integer pageSize) {
-        float res = wordSetRepository.count() * 1.0f / pageSize;
+    public int getQuantityOfAvailablePages(Integer pageSize, String searchText, String languagesToFilter) {
+        AppUser loggedInUser = authService.getLoggedInUser();
+        List<String> langFilter = splitFilterToList(languagesToFilter);
+        float res = 0;
+        if (searchText == null) {
+            res = wordSetRepository.countByUser(loggedInUser) * 1.0f / pageSize;
+        } else {
+            if (langFilter.size() > 0) {
+                res = wordSetRepository.getAmountOfPagesForSearchingWithFilter(searchText, loggedInUser, langFilter) * 1.0f / pageSize;
+            } else {
+                res = wordSetRepository.getAmountOfPagesForSearchingWithoutFilter(searchText, loggedInUser) * 1.0f / pageSize;
+            }
+
+        }
         return (int) (res % 1 == 0 ? res : res + 1);
     }
+
+    public List<WordSetResponse> searchByText(String text, int pageNumber, int pageSize, SortingType sortingType, String languagesToFilter) {
+        Pageable paging = makePageRequest(pageNumber, pageSize, sortingType);
+        List<String> langFilter = splitFilterToList(languagesToFilter);
+        AppUser loggedInUser = authService.getLoggedInUser();
+
+        List<WordSetResponse> collect;
+        if (langFilter.size() > 0) {
+            collect = wordSetRepository.searchInWordSetPageWithFilter(text, loggedInUser, langFilter, paging).stream()
+                    .map(wordSet -> utilMapper.mapFromWordSetToDto(wordSet))
+                    .collect(Collectors.toList());
+        } else {
+            collect = wordSetRepository.searchInWordSetPageWithoutFilter(text, loggedInUser, paging).stream()
+                    .map(wordSet -> utilMapper.mapFromWordSetToDto(wordSet))
+                    .collect(Collectors.toList());
+        }
+        return collect;
+    }
+
+    private Pageable makePageRequest(int pageNumber, int pageSize, SortingType sortingType) {
+        Pageable paging = null;
+        if (sortingType == SortingType.DATE_ASC) {
+            paging = PageRequest.of(pageNumber, pageSize, Sort.by("creationTime").ascending());
+        } else if (sortingType == SortingType.DATE_DESC) {
+            paging = PageRequest.of(pageNumber, pageSize, Sort.by("creationTime").descending());
+        }
+        return paging;
+    }
+
+    private List<String> splitFilterToList(String languagesToFilter) {
+        String[] temp = languagesToFilter.split(",");
+        return new ArrayList<>(Arrays.asList(temp))
+                .stream()
+                .filter(lang -> lang.length() > 0)
+                .map(lang -> StringUtils.trimAllWhitespace(lang))
+                .collect(Collectors.toList());
+    }
 }
+

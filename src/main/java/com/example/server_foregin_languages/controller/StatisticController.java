@@ -30,9 +30,10 @@ public class StatisticController {
         return statisticService.getAllWordSetWithStatisticByGameType(gameType);
     }
 
-    @GetMapping("/byid/{id}")
-    public ResponseEntity<List<Statistic>> getAllStatisticByWordSetId(@PathVariable("id") Long wordSetId){
-        List<Statistic> statistic = statisticService.getStatisticForWordSetId(wordSetId);
+    @GetMapping("/byid/{id}/{type}")
+    public ResponseEntity<List<Statistic>> getAllStatisticByWordSetId(@PathVariable("id") Long wordSetId,@PathVariable GameType type){
+        System.out.println(type+" "+wordSetId);
+        List<Statistic> statistic = statisticService.getStatisticForWordSetIdAndType(wordSetId,type);
         System.out.println(statistic.size());
         return ResponseEntity.status(HttpStatus.OK).body(statistic);
     }

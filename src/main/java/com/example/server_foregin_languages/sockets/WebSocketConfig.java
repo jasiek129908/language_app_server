@@ -11,20 +11,17 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
-@AllArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic/","/queue");
-        //wszystko co sie zaczyna na /app bedzie szlo do kontrolleraara
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-//        registry.addEndpoint("/duel").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("http://localhost:4200","http://192.168.0.103:4200");
         registry.addEndpoint("/duel").setHandshakeHandler(new CustomHandshakeHandler()).setAllowedOrigins("*");
     }
+
 }

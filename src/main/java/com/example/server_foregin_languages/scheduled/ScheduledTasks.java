@@ -18,9 +18,8 @@ public class ScheduledTasks {
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private final UserActivityService userActivityService;
 
-    //zamienic na crona zeby pierwszego dnia nowego mieisace
-    @Scheduled(fixedRate = 86400000)
-//    @Scheduled(fixedRate = 60000)
+//    @Scheduled(fixedRate = 86400000)
+    @Scheduled(cron = "0 0 1 * * ?")
     public void removeOldActivity() {
         log.info("Task started {}", dateFormat.format(new Date()));
         userActivityService.removeActivityFromOneMonthAgo();

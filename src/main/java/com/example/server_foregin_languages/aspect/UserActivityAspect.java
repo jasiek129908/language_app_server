@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
 @Aspect
@@ -13,11 +14,11 @@ import org.springframework.stereotype.Component;
 public class UserActivityAspect {
 
     private final UserActivityService userActivityService;
-
-    //zamien na wywolanie gierek albo na save statiscitc
-    @After("execution(* com.example.server_foregin_languages.controller..*(..))")
-    public void doSomethingAdvice()  {
+    @Pointcut("execution(* com.example.server_foregin_languages.controller.StatisticController.saveStatistic(..))")
+    public void savingStatisticPointcut() {
+    }
+    @After("savingStatisticPointcut()")
+    public void saveUserActivity() {
         userActivityService.saveUserActivity();
     }
-
 }

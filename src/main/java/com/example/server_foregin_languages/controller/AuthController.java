@@ -33,9 +33,7 @@ public class AuthController {
 
     @PostMapping("/refreshToken")
     public AuthenticationResponse refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        System.out.println("bylemmmm: " +refreshTokenRequest);
         AuthenticationResponse authenticationResponse = authService.refreshToken(refreshTokenRequest);
-        System.out.println("wysylam odpoweiedz");
         return authenticationResponse;
     }
 }

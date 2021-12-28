@@ -1,6 +1,8 @@
 package com.example.server_foregin_languages.controller;
 
 import com.example.server_foregin_languages.domain.SharedWordSet;
+import com.example.server_foregin_languages.domain.SortingType;
+import com.example.server_foregin_languages.dto.SharedWordSetResponse;
 import com.example.server_foregin_languages.service.SharedWordSetService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,8 +19,8 @@ public class SharedWordSetController {
     private final SharedWordSetService sharedWordSetService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<SharedWordSet> getSharedWordSet(@PathVariable("id") Long wordSetId) {
-        SharedWordSet sharedWordSet = sharedWordSetService.getSharedWordSetById(wordSetId);
+    public ResponseEntity<SharedWordSetResponse> getSharedWordSet(@PathVariable("id") Long wordSetId) {
+        SharedWordSetResponse sharedWordSet = sharedWordSetService.getSharedWordSetByWordSetId(wordSetId);
         return ResponseEntity.status(HttpStatus.OK).body(sharedWordSet);
     }
 
@@ -29,8 +31,8 @@ public class SharedWordSetController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SharedWordSet>> getAllSharedWordSet() {
-        List<SharedWordSet> list = sharedWordSetService.getAllSharedWordSet();
+    public ResponseEntity<List<SharedWordSetResponse>> getAllSharedWordSet() {
+        List<SharedWordSetResponse> list = sharedWordSetService.getAllSharedWordSet();
         return ResponseEntity.status(HttpStatus.OK).body(list);
     }
 
@@ -47,16 +49,25 @@ public class SharedWordSetController {
     }
 
     @GetMapping("/page")
-    public ResponseEntity<List<SharedWordSet>> getPageWordSet(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
+    public ResponseEntity<List<SharedWordSetResponse>> getPageWordSet(@RequestParam Integer pageNumber, @RequestParam Integer pageSize,
+                                                                      @RequestParam SortingType sortingType, @RequestParam String filter) {
         if (pageNumber - 1 < 0)
             throw new RuntimeException("pageNumber lower than zero");
-        List<SharedWordSet> pageSharedWordSet = sharedWordSetService.getPageSharedWordSet(pageNumber - 1, pageSize);
+        List<SharedWordSetResponse> pageSharedWordSet = sharedWordSetService.getPageSharedWordSet(pageNumber - 1, pageSize, sortingType, filter);
         return ResponseEntity.ok(pageSharedWordSet);
     }
 
     @GetMapping("/allpagesize")
-    public ResponseEntity<Integer> getAllPageSize(@RequestParam Integer pageSize) {
-        int quantityOfAvailablePages = sharedWordSetService.getQuantityOfAvailablePages(pageSize);
+    public ResponseEntity<Integer> getAllPageSize(@RequestParam Integer pageSize, @RequestParam("text") String searchText, @RequestParam String filter) {
+        int quantityOfAvailablePages = sharedWordSetService.getQuantityOfAvailablePages(pageSize, searchText,filter);
         return ResponseEntity.ok(quantityOfAvailablePages);
+    }
+
+    @GetMapping("/search/{text}")
+    public ResponseEntity<List<SharedWordSetResponse>> getSearchSharedWordSet(@PathVariable String text, @RequestParam Integer pageNumber,
+                                                                              @RequestParam Integer pageSize, @RequestParam SortingType sortingType,
+                                                                              @RequestParam String filter) {
+        List<SharedWordSetResponse> searchedSharedWordSet = sharedWordSetService.searchByText(text, pageNumber - 1, pageSize, sortingType, filter);
+        return ResponseEntity.ok(searchedSharedWordSet);
     }
 }

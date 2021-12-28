@@ -24,6 +24,7 @@ public class AppUser {
     private String password;
     @Column(unique = true)
     private String nickName;
+
     @JsonBackReference
     @OneToMany(mappedBy = "user")
     private List<WordSet> wordSetList;

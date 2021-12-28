@@ -8,5 +8,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class DuelNextWordGameType {
     private Long sharedWordSetId;
+    private String word;
     private GameType gameType;
 }

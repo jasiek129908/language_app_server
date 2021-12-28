@@ -15,6 +15,8 @@ public interface WordRepository extends JpaRepository<Word,Long> {
 
     Optional<Word> findByWord(String word);
     Optional<Word> findByTranslation(String translation);
+    Integer countByWord(String word);
+    Integer countByTranslation(String translation);
 
     @Transactional
     @Modifying

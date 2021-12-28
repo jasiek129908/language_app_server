@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
@@ -20,21 +21,22 @@ public class WordSet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    //    private String fromLanguage;
     private String toLanguage;
     private String title;
+    @Column(length = 400)
     private String description;
-    //@JsonIgnore chwiliowo rozwiaze problem
+
     @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "user_id")
     private AppUser user;
     @JsonManagedReference
-    @OneToMany(mappedBy = "wordSet", cascade = {CascadeType.PERSIST,CascadeType.REMOVE})
+    @OneToMany(mappedBy = "wordSet", cascade = {CascadeType.PERSIST,CascadeType.REMOVE},fetch = FetchType.EAGER)
     private List<Word> wordList;
     private Instant creationTime;
 
+    @EqualsAndHashCode.Exclude
     @JsonBackReference
-    @OneToOne(mappedBy = "wordSet",cascade = {CascadeType.PERSIST,CascadeType.REMOVE} )
+    @OneToOne(mappedBy = "wordSet",cascade = {CascadeType.REMOVE} )
     private SharedWordSet sharedWordSet;
 }

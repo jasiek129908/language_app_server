@@ -27,15 +27,13 @@ public class CommentService {
         SharedWordSet sharedWordSet = sharedWordSetRepository.findById(sharedWordSetId)
                 .orElseThrow(() -> new RuntimeException("no shared word set with id: " + sharedWordSetId + " found while fetching comments"));
         List<Comment> commentList = commentRepository.getBySharedWordSet(sharedWordSet);
-        System.out.println("rozmiar "+commentList.size());
-        List<CommentResponse> result = commentList.stream().map(comment -> CommentResponse.builder()
+        return commentList.stream().map(comment -> CommentResponse.builder()
                 .comment(comment.getComment())
                 .authorNickName(comment.getAuthor().getNickName())
                 .creationDate(comment.getCreationDate())
                 .id(comment.getId())
                 .build())
                 .collect(Collectors.toList());
-        return result;
     }
 
     public Comment saveComment(CommentBody commentBody) {

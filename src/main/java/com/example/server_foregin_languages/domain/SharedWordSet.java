@@ -18,8 +18,7 @@ public class SharedWordSet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Integer likeCount;
-    private Integer dislikeCount;
+    private Integer likesCount;
 
     @JsonManagedReference
     @OneToOne
@@ -27,10 +26,10 @@ public class SharedWordSet {
     private WordSet wordSet;
 
     @JsonBackReference
-    @OneToMany(mappedBy = "sharedWordSet")
+    @OneToMany(mappedBy = "sharedWordSet",cascade = CascadeType.REMOVE)
     private List<Vote> likeList;
 
     @JsonManagedReference
-    @OneToMany(mappedBy = "sharedWordSet")
+    @OneToMany(mappedBy = "sharedWordSet",cascade = CascadeType.REMOVE)
     private List<Comment> commentList;
 }

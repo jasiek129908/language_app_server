@@ -21,8 +21,7 @@ public class UserActivityService {
     private final AuthService authService;
 
     public void saveUserActivity() {
-        //usun to aspekt psul ale jak dobrze sutawisz to bedzie dobrze
-        if (!checkIfUserTodayHadActivity() && authService.isUserAuthenticated()) {
+        if (!checkIfUserTodayHadActivity()) {
             UserActivity userActivity = new UserActivity();
             userActivity.setUser(authService.getLoggedInUser());
             userActivity.setDate(getNewDateWithoutTimeStamp(new Date()));
@@ -43,6 +42,7 @@ public class UserActivityService {
     private boolean checkIfUserTodayHadActivity() {
         Optional<UserActivity> byDate = activityRepository.findByDateAndUser(getNewDateWithoutTimeStamp(new Date()),
                 authService.getLoggedInUser());
+        System.out.println("3");
         return byDate.isPresent();
     }
 

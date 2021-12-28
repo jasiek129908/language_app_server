@@ -26,6 +26,7 @@ public class StatisticService {
     private final AuthService authService;
 
     public Statistic saveStatistic(StatisticBody statisticBody) {
+        System.out.println(statisticBody);
         return statisticRepository.save(utilMapper.mapFromDtoToStatistic(statisticBody));
     }
 
@@ -45,11 +46,12 @@ public class StatisticService {
         return res;
     }
 
-    public List<Statistic> getStatisticForWordSetId(Long wordSetId) {
+    public List<Statistic> getStatisticForWordSetIdAndType(Long wordSetId,GameType gameType) {
         AppUser loggedInUser = authService.getLoggedInUser();
         WordSet wordSet = wordSetRepository.getById(wordSetId);
         List<Statistic> collect = statisticRepository.findAllByWordSet(wordSet).stream()
                 .filter(statistic -> statistic.getUser().equals(loggedInUser))
+                .filter(statistic -> statistic.getGameType().equals(gameType))
                 .sorted(new Comparator<Statistic>() {
                     @Override
                     public int compare(Statistic o1, Statistic o2) {
